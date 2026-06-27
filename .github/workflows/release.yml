@@ -1,0 +1,286 @@
+name: Release
+
+# Release pipeline: packages installers for Windows, macOS, and Linux and
+# publishes them to a GitHub Release. Triggered by pushing a version tag
+# (e.g. `v0.1.0`), or manually via the Actions tab with a tag name.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag/version to release (e.g. v0.1.0). Used for the GitHub Release.'
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  # Gate: never publish broken binaries.
+  test:
+    name: Typecheck & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  # Package installers/binaries on a NATIVE runner for every platform/arch combo.
+  #
+  # Maximum fidelity: each cell runs on a runner of the exact target architecture,
+  # so `npm ci` installs the matching @lydell/node-pty native prebuild and
+  # electron-builder packages a single arch it is actually running on. No
+  # cross-compilation and no foreign-arch prebuild juggling.
+  package:
+    name: Package (${{ matrix.os }} ${{ matrix.arch }})
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest      # Windows x64
+            arch: x64
+            eb: --win --x64
+          - os: windows-11-arm      # Windows arm64
+            arch: arm64
+            eb: --win --arm64
+          - os: macos-14            # macOS Apple Silicon (arm64)
+            arch: arm64
+            eb: --mac --arm64
+          # macOS Intel (x64) is CROSS-BUILT on an Apple Silicon runner because
+          # GitHub's Intel macos-13 runners are unavailable for this account.
+          # The app's only native module (@lydell/node-pty) ships prebuilt N-API
+          # binaries per arch, so we just force-install the darwin-x64 prebuild
+          # (see step below) and let electron-builder package the x64 Electron.
+          - os: macos-14
+            arch: x64
+            eb: --mac --x64
+            crossPty: darwin-x64
+          - os: ubuntu-latest       # Linux x64
+            arch: x64
+            eb: --linux --x64
+          - os: ubuntu-24.04-arm    # Linux arm64
+            arch: arm64
+            # AppImage only: electron-builder's bundled fpm (needed for .deb) is
+            # an x86 binary and cannot execute on an arm64 runner.
+            eb: --linux AppImage --arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install foreign-arch node-pty prebuild (cross-build only)
+        if: ${{ matrix.crossPty != '' }}
+        shell: bash
+        run: |
+          # npm ci only installs the prebuild matching the runner's own arch.
+          # For a cross-arch package (e.g. building macOS x64 on an arm64 runner)
+          # force-install the target prebuild at the exact node-pty version so
+          # electron-builder bundles the right @lydell/node-pty-<plat>-<arch>.
+          PTY_VER="$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")"
+          npm install --no-save --force "@lydell/node-pty-${{ matrix.crossPty }}@${PTY_VER}"
+          test -f "node_modules/@lydell/node-pty-${{ matrix.crossPty }}/prebuilds/${{ matrix.crossPty }}/pty.node"
+      - name: Build (electron-vite)
+        run: npm run build
+      - name: Package (${{ matrix.arch }})
+        # Map secrets to intermediate env vars, then only EXPORT the
+        # electron-builder signing vars (CSC_LINK/APPLE_*) when a mac cert is
+        # actually configured. Setting CSC_LINK to an empty string makes
+        # electron-builder treat "" as a cert file path and fail ("not a file"),
+        # so the unsigned path must leave these vars unset entirely (which is the
+        # original, known-good behavior). macOS signing requires the paid Apple
+        # Developer Program; Windows is signed separately via SignPath below.
+        shell: bash
+        env:
+          # electron-builder reads GH_TOKEN; we publish in a dedicated job below,
+          # so packaging itself never auto-publishes.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          MAC_APPLE_ID: ${{ secrets.APPLE_ID }}
+          MAC_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          MAC_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [[ "${{ matrix.eb }}" == *--mac* && -n "$MAC_CSC_LINK" ]]; then
+            export CSC_LINK="$MAC_CSC_LINK"
+            export CSC_KEY_PASSWORD="$MAC_CSC_KEY_PASSWORD"
+            # Trigger notarization only when an Apple ID is supplied.
+            if [[ -n "$MAC_APPLE_ID" ]]; then
+              export APPLE_ID="$MAC_APPLE_ID"
+              export APPLE_APP_SPECIFIC_PASSWORD="$MAC_APPLE_APP_SPECIFIC_PASSWORD"
+              export APPLE_TEAM_ID="$MAC_APPLE_TEAM_ID"
+            fi
+          fi
+          npx --no-install electron-builder ${{ matrix.eb }}
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}-${{ matrix.arch }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.zip
+            dist/*.blockmap
+
+  # Sign Windows binaries via SignPath.io (free for OSS through the SignPath
+  # Foundation). DISABLED until configured: this job only runs when the repo
+  # variable SIGNPATH_ENABLED == 'true'. Until then the release publishes the
+  # unsigned Windows binaries exactly as before.
+  #
+  # Full setup & rationale: docs/SIGNING.md. Quick reference (maintainer):
+  #   1. Apply for free OSS signing at https://signpath.io/open-source
+  #      (repo must be public OSS — this one is MIT-licensed and public).
+  #   2. In SignPath, create/confirm the project, a signing policy, and an
+  #      artifact configuration (see .signpath/artifact-configuration.xml).
+  #   3. Add GitHub secret:  SIGNPATH_API_TOKEN
+  #      Add GitHub variables:
+  #        SIGNPATH_ORGANIZATION_ID, SIGNPATH_PROJECT_SLUG,
+  #        SIGNPATH_SIGNING_POLICY_SLUG,
+  #        SIGNPATH_ARTIFACT_CONFIG_SLUG (optional), and SIGNPATH_ENABLED = true
+  sign-windows:
+    name: Sign Windows (${{ matrix.arch }})
+    needs: package
+    if: ${{ vars.SIGNPATH_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            artifact: installers-windows-latest-x64
+          - arch: arm64
+            artifact: installers-windows-11-arm-arm64
+    steps:
+      - name: Validate SignPath configuration
+        # Fail fast with an actionable message if signing was enabled but the
+        # required secret/variables are missing (otherwise the signing action
+        # fails later with a less obvious error).
+        env:
+          API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          ORG_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          POLICY_SLUG: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+        run: |
+          missing=()
+          [ -z "$API_TOKEN" ]    && missing+=("secret SIGNPATH_API_TOKEN")
+          [ -z "$ORG_ID" ]       && missing+=("variable SIGNPATH_ORGANIZATION_ID")
+          [ -z "$PROJECT_SLUG" ] && missing+=("variable SIGNPATH_PROJECT_SLUG")
+          [ -z "$POLICY_SLUG" ]  && missing+=("variable SIGNPATH_SIGNING_POLICY_SLUG")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::SIGNPATH_ENABLED is 'true' but these are not set: ${missing[*]}. See docs/SIGNING.md, or set SIGNPATH_ENABLED to anything other than 'true' to publish unsigned."
+            exit 1
+          fi
+          echo "SignPath configuration present."
+      - name: Resolve GitHub artifact id
+        id: art
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ID=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+            --jq ".artifacts[] | select(.name==\"${{ matrix.artifact }}\") | .id")
+          if [ -z "$ID" ]; then echo "::error::artifact ${{ matrix.artifact }} not found"; exit 1; fi
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+      - name: Submit signing request to SignPath
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIG_SLUG }}
+          github-artifact-id: ${{ steps.art.outputs.id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+      - name: Upload signed Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-${{ matrix.artifact }}
+          path: signed/**
+          if-no-files-found: error
+          retention-days: 7
+
+  # Collect every platform's binaries, checksum them, and publish the release.
+  publish:
+    name: Publish GitHub Release
+    needs: [package, sign-windows]
+    # Publish whatever binaries built successfully even if one platform/arch
+    # cell failed, so a single flaky/unavailable runner can't block the whole
+    # release. (Still runs when sign-windows is skipped; only skipped if the run
+    # was cancelled.)
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          path: dist
+          merge-multiple: true
+      - name: Replace Windows binaries with signed versions
+        # Runs after the unsigned download so signed .exe files overwrite their
+        # unsigned counterparts (same filenames) before checksums are generated.
+        if: ${{ vars.SIGNPATH_ENABLED == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: signed-installers-windows-*
+          path: dist
+          merge-multiple: true
+      - name: Generate SHA256 checksums
+        working-directory: dist
+        run: |
+          shopt -s nullglob
+          files=(*.exe *.dmg *.AppImage *.deb *.zip)
+          if [ ${#files[@]} -gt 0 ]; then
+            sha256sum "${files[@]}" > SHA256SUMS.txt
+            cat SHA256SUMS.txt
+          fi
+      - name: List artifacts
+        run: ls -lR dist
+      - name: Remove any existing release for this tag
+        # Make publishing idempotent: re-running the release (or re-cutting the
+        # tag) would otherwise leave a stale release record and make
+        # action-gh-release create a duplicate. Delete the GitHub Release if it
+        # exists (the git tag itself is kept).
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes || true
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event.inputs.tag || github.ref_name }}
+          draft: false
+          # This beta is the current downloadable release, so mark it "latest"
+          # (and not a prerelease) so the website's /releases/latest links and
+          # GitHub's "Latest" badge resolve straight to these binaries.
+          prerelease: false
+          make_latest: "true"
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.zip
+            dist/*.blockmap
+            dist/SHA256SUMS.txt

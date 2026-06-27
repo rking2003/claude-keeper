@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claude Keeper — UX Prototype</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --border:#30363d;
+    --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff;
+    --green:#3fb950; --amber:#d29922; --blue:#58a6ff; --teal:#39c5cf;
+    --red:#f85149; --gray:#6e7681;
+    --term:#0a0e14; --termtxt:#c9d1d9;
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#05070a;color:var(--txt);font-family:var(--sans);
+       display:flex;flex-direction:column;align-items:center;gap:14px;padding:22px 12px;min-height:100vh}
+  .hint{color:var(--muted);font-size:13px;max-width:900px;text-align:center;line-height:1.5}
+  .hint b{color:var(--txt)}
+  .window{width:980px;max-width:100%;background:var(--bg);border:1px solid var(--border);
+          border-radius:12px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  .titlebar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#10151c;border-bottom:1px solid var(--border)}
+  .traffic{display:flex;gap:8px}
+  .traffic i{width:12px;height:12px;border-radius:50%;display:block}
+  .traffic .r{background:#ff5f56}.traffic .y{background:#ffbd2e}.traffic .g{background:#27c93f}
+  .title{font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+  .pill{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
+        padding:4px 11px;border-radius:999px;border:1px solid var(--border);background:#0d1117}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .toolbar{display:flex;gap:8px;padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap}
+  button.tb{background:var(--panel2);color:var(--txt);border:1px solid var(--border);border-radius:7px;
+            padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  button.tb:hover{border-color:var(--accent);background:#222b3a}
+  button.tb:active{transform:translateY(1px)}
+  button.tb.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  button.tb.primary:hover{background:#388bfd}
+  .spacer{flex:1}
+  .main{position:relative;height:430px;background:var(--term);overflow:hidden}
+  .term{height:100%;padding:14px 16px;font-family:var(--mono);font-size:13px;line-height:1.55;color:var(--termtxt);
+        overflow:auto;white-space:pre-wrap}
+  .term .u{color:#7ee787}.term .a{color:#c9d1d9}.term .dim{color:#6e7681}.term .warn{color:var(--amber)}
+  .cursor{display:inline-block;width:8px;height:15px;background:#3fb950;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);
+           background:rgba(5,7,10,.55)}
+  .overlay.show{display:flex}
+  .banner{width:560px;max-width:90%;background:linear-gradient(180deg,#1b2330,#141a24);border:1px solid #2d3a4d;
+          border-radius:14px;padding:22px 24px;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+  .banner h3{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .banner .sub{color:var(--muted);font-size:12.5px;margin-bottom:16px}
+  .count{font-family:var(--mono);font-size:42px;font-weight:700;letter-spacing:3px;text-align:center;color:#cdd9e5}
+  .at{text-align:center;color:var(--muted);font-size:12.5px;margin-top:4px}
+  .bar{height:9px;border-radius:6px;background:#0d1117;border:1px solid var(--border);margin:16px 0 6px;overflow:hidden}
+  .bar > i{display:block;height:100%;width:43%;background:linear-gradient(90deg,#1f6feb,#39c5cf);border-radius:6px}
+  .pct{text-align:right;color:var(--muted);font-size:11px}
+  .banner .row{display:flex;gap:10px;margin-top:14px}
+  .banner .row button{flex:1;padding:9px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;border:1px solid var(--border)}
+  .btn-resume{background:#238636;border-color:#238636;color:#fff}
+  .btn-cancel{background:transparent;color:var(--muted)}
+  .status{display:flex;align-items:center;gap:10px;padding:7px 14px;background:#10151c;border-top:1px solid var(--border);
+          font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+  .status .sep{opacity:.4}
+  .activity{width:980px;max-width:100%;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .activity h4{margin:0;padding:10px 14px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);
+               border-bottom:1px solid var(--border);background:#10151c}
+  .log{font-family:var(--mono);font-size:12px;padding:8px 14px;max-height:150px;overflow:auto}
+  .log div{padding:3px 0;color:#b8c2cc}
+  .log .t{color:var(--muted)}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal.show{display:flex}
+  .sheet{width:560px;max-width:94%;max-height:88vh;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:14px}
+  .sheet header{padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;display:flex;align-items:center}
+  .sheet header button{margin-left:auto;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer}
+  .sheet .body{padding:16px 18px}
+  .grp{margin-bottom:18px}
+  .grp h5{margin:0 0 9px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent)}
+  .field{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12.5px}
+  .field label{width:150px;color:var(--muted)}
+  .field input[type=text],.field input[type=number]{flex:1;background:var(--term);border:1px solid var(--border);
+        color:var(--txt);border-radius:7px;padding:7px 9px;font-family:var(--mono);font-size:12px}
+  .field input[type=number]{width:70px;flex:none}
+  .radio{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--txt);margin:5px 0}
+  .sheet footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+  .sheet footer button{padding:8px 16px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;border:1px solid var(--border)}
+  .save{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .controls button{background:#141a24;border:1px solid var(--border);color:var(--txt);border-radius:8px;padding:9px 14px;
+                   font-size:12.5px;font-weight:600;cursor:pointer}
+  .controls button:hover{border-color:var(--accent)}
+  .controls .lbl{align-self:center;color:var(--muted);font-size:12px;margin-right:4px}
+</style>
+</head>
+<body>
+  <div class="hint">
+    <b>Claude Keeper — clickable UX prototype.</b> Use the <b>scenario buttons</b> below to drive the app through its states.
+    Try <b>Simulate limit hit</b> to watch the live countdown, and <b>Settings</b> to see configuration. This is a static mockup —
+    no real CLI is running.
+  </div>
+
+  <div class="controls">
+    <span class="lbl">Scenario:</span>
+    <button onclick="setState('running')">&#9654; Running</button>
+    <button onclick="simulateLimit()">&#9888; Simulate limit hit</button>
+    <button onclick="setState('resuming')">&#8635; Resuming</button>
+    <button onclick="setState('error')">&#10005; Resume failed</button>
+    <button onclick="setState('idle')">&#9675; Idle</button>
+  </div>
+
+  <div class="window">
+    <div class="titlebar">
+      <div class="traffic"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+      <span class="title">Claude Keeper</span>
+      <span class="pill"><span class="dot" id="pillDot"></span><span id="pillTxt">RUNNING</span></span>
+    </div>
+
+    <div class="toolbar">
+      <button class="tb"><span>&#9654;</span> Start</button>
+      <button class="tb"><span>&#9632;</span> Stop</button>
+      <button class="tb" id="pauseBtn" onclick="togglePause()"><span>&#9208;</span> <span id="pauseLbl">Pause auto-resume</span></button>
+      <button class="tb primary" onclick="resumeNow()"><span>&#8635;</span> Resume now</button>
+      <button class="tb" onclick="openTimer()"><span>&#9201;</span> Resume in&hellip;</button>
+      <div class="spacer"></div>
+      <button class="tb" onclick="openSettings()"><span>&#9881;</span> Settings</button>
+    </div>
+
+    <div class="main">
+      <div class="term" id="term"></div>
+
+      <div class="overlay" id="overlay">
+        <div class="banner">
+          <h3><span style="color:var(--amber)">&#9888;</span> Usage limit reached</h3>
+          <div class="sub">5-hour rolling window hit. Auto-resume is <b id="bnMode">ON</b>.</div>
+          <div class="count" id="count">02:14:31</div>
+          <div class="at">resuming at <b id="atTime">3:00 PM</b> (America/New_York) &middot; strategy: <b id="atStrat">Continue</b></div>
+          <div class="bar"><i id="barFill"></i></div>
+          <div class="pct" id="pct">43%</div>
+          <div class="row">
+            <button class="btn-resume" onclick="resumeNow()">&#8635; Resume now</button>
+            <button class="btn-cancel" onclick="setState('running')">&#10005; Cancel auto-resume</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status">
+      <span class="dot" id="stDot" style="width:8px;height:8px"></span>
+      <span id="stState">RUNNING</span><span class="sep">&middot;</span>
+      <span id="stInfo">session 1h12m</span><span class="sep">&middot;</span>
+      <span>strategy: <b id="stStrat">Continue</b></span><span class="sep">&middot;</span>
+      <span>auto-resume: <b id="stAuto">ON</b></span>
+    </div>
+  </div>
+
+  <div class="activity">
+    <h4>Activity</h4>
+    <div class="log" id="log">
+      <div><span class="t">14:46</span> &#9679; Running &middot; session started</div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="sheet">
+      <header>Settings <button onclick="closeSettings()">&#10005;</button></header>
+      <div class="body">
+        <div class="grp">
+          <h5>Command</h5>
+          <div class="field"><label>Claude command</label><input type="text" value="claude"></div>
+          <div class="field"><label>Arguments</label><input type="text" placeholder="(none)"></div>
+          <div class="field"><label>Working dir</label><input type="text" placeholder="(project folder)"></div>
+        </div>
+        <div class="grp">
+          <h5>Resume</h5>
+          <label class="radio"><input type="radio" name="strat" checked onchange="setStrat('Continue')"> Continue conversation (<code>--continue</code>)</label>
+          <label class="radio"><input type="radio" name="strat" onchange="setStrat('Replay')"> Replay my last prompt</label>
+          <div class="field" style="margin-top:8px"><label>Safety buffer</label><input type="number" value="60"> sec</div>
+        </div>
+        <div class="grp">
+          <h5>Reset timing</h5>
+          <label class="radio"><input type="checkbox" checked> Parse reset time from output</label>
+          <div class="field" style="margin-top:8px"><label>Fallback poll every</label><input type="number" value="5"> min
+            &nbsp;&nbsp;Max retries <input type="number" value="5"></div>
+        </div>
+        <div class="grp">
+          <h5>Detection patterns (advanced)</h5>
+          <div class="field"><label>Limit-reached</label><input type="text" value="usage limit reached"></div>
+          <div class="field"><label>Reset-time</label><input type="text" value="reset at (.+?) \((.+?)\)"></div>
+        </div>
+        <div class="grp">
+          <h5>Notifications</h5>
+          <label class="radio"><input type="checkbox" checked> Desktop notification on limit &amp; resume</label>
+          <label class="radio"><input type="checkbox"> Play sound</label>
+        </div>
+      </div>
+      <footer>
+        <button onclick="closeSettings()">Cancel</button>
+        <button class="save" onclick="closeSettings()">Save</button>
+      </footer>
+    </div>
+  </div>
+
+  <div class="modal" id="timerModal">
+    <div class="sheet" style="width:380px">
+      <header>Manual resume timer <button onclick="closeTimer()">&#10005;</button></header>
+      <div class="body">
+        <div class="grp">
+          <p style="margin:0 0 12px;font-size:12.5px;color:var(--muted);line-height:1.5">Resume the conversation automatically after a delay you choose.</p>
+          <div class="field"><label>Resume in</label><input type="number" id="timerMins" min="0" value="5"> min <input type="number" id="timerSecs" min="0" max="59" value="0"> sec</div>
+        </div>
+      </div>
+      <footer>
+        <button onclick="closeTimer()">Cancel</button>
+        <button class="save" onclick="startTimer()">Start timer</button>
+      </footer>
+    </div>
+  </div>
+
+<script>
+  const STATES = {
+    idle:    {color:'var(--gray)',  label:'IDLE',    info:'no session'},
+    running: {color:'var(--green)', label:'RUNNING', info:'session 1h12m'},
+    waiting: {color:'var(--blue)',  label:'WAITING', info:'next resume 3:00 PM'},
+    resuming:{color:'var(--teal)',  label:'RESUMING',info:'claude --continue'},
+    error:   {color:'var(--red)',   label:'RETRYING',info:'resume failed · backoff'},
+  };
+  let strategy='Continue', autoResume=true, timer=null, remaining=0, total=8071, manualTimer=false;
+
+  const termRunning = [
+    ['dim','$ claude'],
+    ['a','+-------------------------------------------+'],
+    ['a','|  Claude Code · Pro                        |'],
+    ['a','+-------------------------------------------+'],
+    ['u','> build the auth module with JWT refresh'],
+    ['a','● Implementing token refresh in src/auth/jwt.ts'],
+    ['a','● Added refresh endpoint and rotation logic'],
+    ['a','● Writing tests for expiry + rotation'],
+    ['dim','  3 files changed · running tests...'],
+    ['cursor','']
+  ];
+  const termLimit = [
+    ['u','> add rate-limit handling to the login route'],
+    ['a','● Working...'],
+    ['warn','Claude usage limit reached. Your limit will reset at 3:00 PM (America/New_York).'],
+    ['dim','  session paused — waiting for reset']
+  ];
+  const termResume = [
+    ['dim','$ claude --continue'],
+    ['a','+-------------------------------------------+'],
+    ['a','|  Resuming previous conversation...        |'],
+    ['a','+-------------------------------------------+'],
+    ['a','● Re-engaging: add rate-limit handling to login route'],
+    ['cursor','']
+  ];
+
+  function renderTerm(lines){
+    const t=document.getElementById('term');
+    t.innerHTML = lines.map(function(p){
+      var c=p[0], txt=p[1];
+      if(c==='cursor') return '<span class="cursor"></span>';
+      var cls = c==='u'?'u':c==='warn'?'warn':c==='dim'?'dim':'a';
+      return '<span class="'+cls+'">'+txt+'</span>';
+    }).join('\n');
+    t.scrollTop = t.scrollHeight;
+  }
+
+  function logLine(txt){
+    const l=document.getElementById('log');
+    const now=new Date();
+    const hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0');
+    const d=document.createElement('div');
+    d.innerHTML='<span class="t">'+hh+':'+mm+'</span> '+txt;
+    l.appendChild(d); l.scrollTop=l.scrollHeight;
+  }
+
+  function applyPill(s){
+    document.getElementById('pillDot').style.background=s.color;
+    document.getElementById('stDot').style.background=s.color;
+    document.getElementById('pillTxt').textContent=s.label;
+    document.getElementById('stState').textContent=s.label;
+    document.getElementById('stInfo').textContent=s.info;
+    document.getElementById('stStrat').textContent=strategy;
+    document.getElementById('stAuto').textContent=autoResume?'ON':'OFF';
+  }
+
+  function setState(name){
+    if(timer){clearInterval(timer);timer=null;}
+    if(name!=='waiting') manualTimer=false;
+    const s=STATES[name]; applyPill(s);
+    document.getElementById('overlay').classList.remove('show');
+    if(name==='running'){ renderTerm(termRunning); }
+    else if(name==='resuming'){ renderTerm(termResume); logLine('&#8635; Resuming · <code>claude --continue</code>');
+      setTimeout(function(){ if(document.getElementById('pillTxt').textContent==='RESUMING'){ setState('running'); logLine('&#9679; Running · resume verified'); }},2200); }
+    else if(name==='error'){ renderTerm(termLimit); logLine('&#10005; Resume failed — limit still active · backing off 5 min'); }
+    else if(name==='idle'){ document.getElementById('term').innerHTML='<span class="dim">No session. Press Start.</span>'; }
+  }
+
+  function simulateLimit(){
+    manualTimer=false;
+    renderTerm(termLimit);
+    applyPill(STATES.waiting);
+    document.querySelector('#overlay .banner h3').innerHTML='<span style="color:var(--amber)">&#9888;</span> Usage limit reached';
+    document.querySelector('#overlay .banner .sub').innerHTML='5-hour rolling window hit. Auto-resume is <b id="bnMode">ON</b>.';
+    document.getElementById('atStrat').textContent=strategy;
+    document.getElementById('bnMode').textContent=autoResume?'ON':'OFF';
+    document.getElementById('overlay').classList.add('show');
+    logLine('&#9888; Limit reached — reset parsed: 3:00 PM (America/New_York)');
+    logLine('&#9680; Waiting · auto-resume scheduled for 3:01 PM ('+strategy+')');
+    remaining = 8071; total = 8071;
+    if(timer) clearInterval(timer);
+    timer=setInterval(tick,1000); tick();
+  }
+
+  function tick(){
+    if(!autoResume && !manualTimer){ return; }
+    remaining--;
+    if(remaining<=0){ clearInterval(timer); timer=null; resumeNow(); return; }
+    const h=String(Math.floor(remaining/3600)).padStart(2,'0');
+    const m=String(Math.floor((remaining%3600)/60)).padStart(2,'0');
+    const sec=String(remaining%60).padStart(2,'0');
+    document.getElementById('count').textContent=h+':'+m+':'+sec;
+    const pct=Math.round((1-remaining/total)*100);
+    document.getElementById('barFill').style.width=pct+'%';
+    document.getElementById('pct').textContent=pct+'%';
+  }
+
+  function resumeNow(){ if(timer){clearInterval(timer);timer=null;} manualTimer=false; setState('resuming'); }
+
+  function openTimer(){ document.getElementById('timerModal').classList.add('show'); }
+  function closeTimer(){ document.getElementById('timerModal').classList.remove('show'); }
+  function startTimer(){
+    var mins=Math.max(0,Math.floor(+document.getElementById('timerMins').value||0));
+    var secs=Math.max(0,Math.floor(+document.getElementById('timerSecs').value||0));
+    var delay=mins*60+secs;
+    if(delay<=0){ return; }
+    closeTimer();
+    manualTimer=true;
+    // Drive straight into WAITING — even from a live RUNNING session, and
+    // regardless of the auto-resume toggle (the manual timer is an override).
+    applyPill(STATES.waiting);
+    renderTerm(termLimit);
+    document.querySelector('#overlay .banner h3').innerHTML='<span style="color:var(--amber)">&#9201;</span> Manual resume timer';
+    document.querySelector('#overlay .banner .sub').innerHTML='Resuming automatically when the timer ends.<b id="bnMode" hidden></b>';
+    document.getElementById('atStrat').textContent=strategy;
+    var at=new Date(Date.now()+delay*1000);
+    document.getElementById('atTime').textContent=at.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    document.getElementById('overlay').classList.add('show');
+    var label=secs===0?mins+'m':(mins===0?secs+'s':mins+'m '+secs+'s');
+    logLine('&#9201; Manual resume timer started — resuming in '+label+' ('+strategy+')');
+    remaining=delay; total=delay;
+    if(timer) clearInterval(timer);
+    timer=setInterval(tick,1000); tick();
+  }
+
+  function togglePause(){
+    autoResume=!autoResume;
+    document.getElementById('pauseLbl').textContent=autoResume?'Pause auto-resume':'Resume auto-resume';
+    document.getElementById('stAuto').textContent=autoResume?'ON':'OFF';
+    document.getElementById('bnMode').textContent=autoResume?'ON':'OFF';
+    logLine(autoResume?'&#9654; Auto-resume enabled':'&#9208; Auto-resume paused');
+  }
+
+  function setStrat(v){ strategy=v; document.getElementById('stStrat').textContent=v; }
+  function openSettings(){ document.getElementById('modal').classList.add('show'); }
+  function closeSettings(){ document.getElementById('modal').classList.remove('show'); }
+
+  setState('running');
+</script>
+</body>
+</html>

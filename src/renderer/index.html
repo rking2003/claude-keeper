@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <title>Claude Keeper</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="titlebar">
+      <span id="title">Claude Keeper</span>
+      <span id="pill"><span id="pillDot"></span><span id="pillTxt">IDLE</span></span>
+    </div>
+
+    <div id="toolbar">
+      <button class="tb" id="btnStart">▶ Start</button>
+      <button class="tb" id="btnStop">■ Stop</button>
+      <button class="tb" id="btnPause">⏸ <span id="pauseLbl">Pause auto-resume</span></button>
+      <button class="tb primary" id="btnResume">↻ Resume now</button>
+      <button class="tb" id="btnTimer">⏱ Resume in…</button>
+      <span class="spacer"></span>
+      <button class="tb" id="btnSettings">⚙ Settings</button>
+    </div>
+
+    <div id="main">
+      <div id="terminal"></div>
+
+      <div id="overlay">
+        <div class="banner">
+          <h3 id="bnTitle"><span class="warn">⚠</span> Usage limit reached</h3>
+          <div class="sub" id="bnSub">Auto-resume is <b id="bnMode">ON</b>.</div>
+          <div class="count" id="count">--:--:--</div>
+          <div class="at">resuming at <b id="atTime">—</b> · strategy: <b id="atStrat">continue</b></div>
+          <div class="bar"><i id="barFill"></i></div>
+          <div class="pct" id="pct">0%</div>
+          <div class="row">
+            <button class="btn-resume" id="btnBannerResume">↻ Resume now</button>
+            <button class="btn-cancel" id="btnBannerCancel">⏸ Pause auto-resume</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="promptbar" class="hidden">
+      <span class="pb-label">↻ Replay prompt</span>
+      <input type="text" id="pbInput" placeholder="Prompt to re-send on resume (auto-captured; edit to override)" />
+      <button id="pbSet">Set</button>
+    </div>
+
+    <div id="trustbar" class="hidden">
+      <span class="tb-label">⚠ This folder isn't trusted</span>
+      <span id="trustMsg">Claude exited because the working directory isn't trusted yet.</span>
+      <button id="btnTrustOnce">Trust &amp; restart</button>
+      <button id="btnTrustDismiss" class="ghost">Dismiss</button>
+    </div>
+
+    <div id="statusbar">
+      <span id="stDot"></span>
+      <span id="stState">IDLE</span><span class="sep">·</span>
+      <span id="stInfo">no session</span><span class="sep">·</span>
+      <span>strategy: <b id="stStrat">continue</b></span><span class="sep">·</span>
+      <span>auto-resume: <b id="stAuto">ON</b></span>
+    </div>
+
+    <div id="activity">
+      <h4>Activity</h4>
+      <div id="log"></div>
+    </div>
+
+    <div id="modal">
+      <div class="sheet">
+        <header>Settings <button id="btnSettingsClose">✕</button></header>
+        <div class="body">
+          <div class="grp">
+            <h5>Command</h5>
+            <div class="field"><label>Claude command</label><input type="text" id="setCmd" value="claude" /></div>
+            <div class="field"><label>Arguments</label><input type="text" id="setArgs" placeholder="(none)" /></div>
+            <div class="field"><label>Working dir</label><input type="text" id="setCwd" placeholder="(default)" /></div>
+            <label class="radio"><input type="checkbox" id="setTrustWorkingDir" /> Trust the working directory (skips Claude's folder-trust prompt via <code>--dangerously-skip-permissions</code>)</label>
+          </div>
+          <div class="grp">
+            <h5>Resume</h5>
+            <label class="radio"><input type="radio" name="strat" id="stratContinue" value="continue" checked /> Continue conversation (<code>--continue</code>)</label>
+            <label class="radio"><input type="radio" name="strat" value="replay" /> Replay my last prompt</label>
+            <div class="field" style="margin-top:8px"><label>Safety buffer</label><input type="number" id="setSafety" value="60" /> sec</div>
+          </div>
+          <div class="grp">
+            <h5>Reset timing</h5>
+            <div class="field"><label>Fallback poll every</label><input type="number" id="setPoll" value="5" /> min &nbsp; Max retries <input type="number" id="setRetries" value="5" /></div>
+          </div>
+          <div class="grp">
+            <h5>Detection patterns (advanced)</h5>
+            <div class="field col" style="flex-direction:column;align-items:stretch">
+              <label>Custom limit-detection patterns (one regex per line)</label>
+              <textarea id="setPatterns" rows="3" placeholder="e.g. rate limit exceeded"></textarea>
+            </div>
+            <label class="radio"><input type="checkbox" id="setReplace" /> Replace built-in patterns (instead of adding to them)</label>
+          </div>
+          <div class="grp">
+            <h5>Diagnostics</h5>
+            <label class="radio"><input type="checkbox" id="setVerbose" /> Verbose debug logging (more detail in the log file)</label>
+            <label class="radio"><input type="checkbox" id="setLogToFile" /> Write logs to a file (off by default)</label>
+            <div class="field" style="margin-top:8px"><label>Rotate log at</label><input type="number" id="setLogMaxSizeMB" value="10" min="1" max="1000" /> MB</div>
+            <div class="field" style="margin-top:8px"><button id="btnLogs">🗎 Open log file</button></div>
+          </div>
+        </div>
+        <footer>
+          <button id="btnSettingsCancel">Cancel</button>
+          <button class="save" id="btnSettingsSave">Save</button>
+        </footer>
+      </div>
+    </div>
+
+    <div id="timerModal">
+      <div class="sheet small">
+        <header>Manual resume timer <button id="btnTimerClose">✕</button></header>
+        <div class="body">
+          <div class="grp">
+            <p class="timer-hint">Resume the conversation automatically after a delay you choose.</p>
+            <div class="field">
+              <label>Resume in</label>
+              <input type="number" id="timerMins" min="0" value="5" /> min
+              <input type="number" id="timerSecs" min="0" max="59" value="0" /> sec
+            </div>
+            <div id="timerError" class="timer-error hidden">Enter a delay greater than zero.</div>
+          </div>
+        </div>
+        <footer>
+          <button id="btnTimerCancel">Cancel</button>
+          <button class="save" id="btnTimerStart">Start timer</button>
+        </footer>
+      </div>
+    </div>
+
+    <script type="module" src="./src/renderer.ts"></script>
+  </body>
+</html>

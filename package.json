@@ -1,0 +1,43 @@
+{
+  "name": "claude-keeper",
+  "version": "1.0.0-beta",
+  "private": true,
+  "description": "Cross-platform desktop app that hosts the Claude CLI and auto-resumes after usage limits reset.",
+  "author": "Claude Keeper contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/claude-keeper/claude-keeper",
+  "type": "module",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke": "electron test/smoke/electron-smoke.cjs",
+    "icon": "node scripts/make-icon.mjs",
+    "pack": "electron-vite build && electron-builder --dir",
+    "dist": "electron-vite build && electron-builder",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:linux": "electron-vite build && electron-builder --linux",
+    "spike:pty": "node spike/pty-node.mjs",
+    "spike:electron": "electron spike/electron-main.cjs"
+  },
+  "dependencies": {
+    "@lydell/node-pty": "^1.2.0-beta.12",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "strip-ansi": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "electron": "^42.5.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^5.0.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.9"
+  }
+}

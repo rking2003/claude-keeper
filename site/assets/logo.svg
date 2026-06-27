@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Claude Keeper logo">
+  <defs>
+    <linearGradient id="ckArc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f81f7"/>
+      <stop offset="1" stop-color="#3fb950"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="#0d1117" stroke="#30363d" stroke-width="2"/>
+  <!-- resume arc -->
+  <path d="M44 24 a14 14 0 1 0 4 12" fill="none" stroke="url(#ckArc)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M44 16 l2 9 l-9 -1 z" fill="#3fb950"/>
+  <!-- pause bars -->
+  <rect x="26" y="27" width="4.5" height="13" rx="1.8" fill="#d29922"/>
+  <rect x="34" y="27" width="4.5" height="13" rx="1.8" fill="#d29922"/>
+</svg>

@@ -1,0 +1,84 @@
+$schema: https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json
+appId: com.claudekeeper.app
+productName: Claude Keeper
+copyright: Copyright © 2025 Claude Keeper contributors
+
+directories:
+  output: dist
+  buildResources: build
+
+# Include everything by default (electron-builder auto-prunes dev dependencies),
+# then strip source/test/config we don't ship. The compiled app lives in out/.
+# node-pty's prebuilt N-API binary ships in per-platform sub-packages under
+# @lydell/* and MUST stay outside the asar so it can be dlopen'd at runtime.
+files:
+  - '**/*'
+  - '!src/**/*'
+  - '!test/**/*'
+  - '!spike/**/*'
+  - '!mockup/**/*'
+  - '!docs/**/*'
+  - '!scripts/**/*'
+  - '!**/*.ts'
+  - '!tsconfig*.json'
+  - '!electron.vite.config.*'
+  - '!vitest.config.*'
+  - '!electron-builder.yml'
+  - '!**/*.map'
+asarUnpack:
+  - '**/node_modules/@lydell/**'
+
+# Reproducible: never auto-publish from a local/CI build unless asked.
+publish: null
+
+# NOTE: targets below are listed WITHOUT an `arch:` array on purpose. The
+# release workflow builds one arch per native runner and selects it via the
+# electron-builder CLI flag (e.g. `--win --x64`). Pinning `arch: [x64, arm64]`
+# here would override the CLI flag and make every runner build BOTH arches —
+# which bundles the wrong-arch node-pty prebuild into the foreign-arch artifact
+# and (on Linux arm64) tries to run the x86-only fpm binary. Leaving arch
+# unset lets the CLI flag be authoritative.
+win:
+  target:
+    - nsis
+    - zip
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  # Entitlements used when a Developer ID identity is present (CSC_LINK secret).
+  # Ignored for unsigned builds, so this is safe even without signing creds.
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Notarization runs automatically when APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD /
+  # APPLE_TEAM_ID are set in the environment AND the app is signed. With no
+  # creds the app builds unsigned exactly as before.
+
+linux:
+  category: Development
+  synopsis: Auto-resume the Claude CLI after Pro usage limits reset.
+  # The Debian (.deb) target requires a package maintainer. Without this (and
+  # with no `email` on package.json `author`), electron-builder aborts the whole
+  # `--linux` build with "Please specify author 'email'…", so no Linux artifacts
+  # are produced. Set it explicitly so AppImage *and* deb package cleanly.
+  maintainer: Claude Keeper contributors <contributors@claude-keeper.github.io>
+  # AppImage is built for both x64 and arm64 (universal, no external tooling).
+  # The .deb (fpm) target is only produced on the x64 runner: electron-builder
+  # bundles an x86-only fpm binary that cannot execute on an arm64 host, so the
+  # release workflow requests only `AppImage` on the Linux arm64 cell.
+  target:
+    - AppImage
+    - deb
+  desktop:
+    StartupWMClass: Claude Keeper
