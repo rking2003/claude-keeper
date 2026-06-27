@@ -1,0 +1,62 @@
+name: CI
+
+# Build + test pipeline. Runs on every push and pull request to master.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast feedback: typecheck + the full vitest suite. No Electron, no real
+  # `claude` binary required — a deterministic mock CLI drives the tests.
+  test:
+    name: Typecheck & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit & integration tests
+        run: npm test
+
+  # Cross-platform build check: make sure the app actually compiles on every
+  # target OS (catches platform-specific breakage without full packaging).
+  build:
+    name: Build (${{ matrix.os }})
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build (electron-vite)
+        run: npm run build
+      # Electron needs an X display on Linux; CI runners are headless, so wrap
+      # the smoke test in Xvfb and disable the (unconfigured) Chromium sandbox.
+      - name: Smoke test (Linux, headless via Xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run smoke
+        env:
+          ELECTRON_DISABLE_SANDBOX: '1'
+      - name: Smoke test (boots the built app headless)
+        if: runner.os != 'Linux'
+        run: npm run smoke

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration for Claude Keeper's Windows installers.
+
+  The submitted GitHub Actions artifact (installers-windows-*) is a ZIP archive
+  containing the NSIS installer (.exe), its .blockmap, and the portable .zip
+  build. This configuration Authenticode-signs the installer and the app
+  executables inside the portable zip.
+
+  Paste this into the SignPath project's artifact configuration. See
+  docs/SIGNING.md for the full setup.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <!-- NSIS installer (Claude.Keeper-<ver>-x64.exe / -arm64.exe).
+         product-name constrains signing to Claude Keeper's own binaries. -->
+    <pe-file path="*.exe" product-name="Claude Keeper">
+      <authenticode-sign/>
+    </pe-file>
+
+    <!-- Portable zip build: sign only the app executable, then re-zip.
+         OpenConsole.exe (Windows Terminal, Microsoft) is bundled by node-pty's
+         ConPTY and is intentionally NOT declared here, so it passes through
+         untouched (we must not re-sign a third-party binary). -->
+    <zip-file path="*.zip">
+      <pe-file path="Claude Keeper.exe" product-name="Claude Keeper">
+        <authenticode-sign/>
+      </pe-file>
+    </zip-file>
+  </zip-file>
+</artifact-configuration>

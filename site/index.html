@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claude Keeper — never babysit a usage limit again</title>
+<meta name="description" content="Claude Keeper is a cross-platform desktop app that hosts the Claude Code CLI, detects Pro-plan usage limits, waits for the reset, and auto-resumes your session — so long-running work survives the limit unattended." />
+<meta property="og:title" content="Claude Keeper" />
+<meta property="og:description" content="Host the Claude CLI, detect usage limits, and auto-resume at reset. Windows · macOS · Linux." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0d1117" />
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<!-- ── Nav ───────────────────────────────────────────── -->
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/logo.svg" alt="" /> Claude Keeper</a>
+    <nav>
+      <a class="hide-sm" href="#what">What</a>
+      <a class="hide-sm" href="#why">Why</a>
+      <a class="hide-sm" href="#how">How it works</a>
+      <a class="hide-sm" href="#demo">Demo</a>
+      <a class="hide-sm" href="#usecases">Use cases</a>
+      <a href="https://github.com/AICodeDoctor/claude-keeper">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<a id="top"></a>
+
+<!-- ── Hero ──────────────────────────────────────────── -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Cross-platform · Windows · macOS · Linux</p>
+      <h1>Never babysit a <span class="grad">Claude usage limit</span> again.</h1>
+      <p class="lead">Claude Keeper hosts the Claude Code CLI in a real terminal, detects when you hit the Pro-plan limit, waits for the reset, and <strong>auto-resumes your session</strong> — so an overnight refactor or a giant migration just keeps going.</p>
+      <div class="hero-cta">
+        <a class="btn primary" href="#download">↓ Download</a>
+        <a class="btn blue" href="#demo">▶ Watch the demo</a>
+        <a class="btn" href="https://github.com/AICodeDoctor/claude-keeper">View on GitHub</a>
+      </div>
+      <div class="badges">
+        <span class="badge">⬇ <b>Prebuilt</b> installers · no setup</span>
+        <span class="badge">🔒 No API keys · observes terminal only</span>
+        <span class="badge">🖥 Windows · macOS · Linux</span>
+        <span class="badge">♻ Survives restart &amp; sleep</span>
+      </div>
+    </div>
+
+    <!-- Animated demo terminal -->
+    <div id="demo-anchor">
+      <div class="term reveal">
+        <div class="term-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="term-title">Claude Keeper</span>
+          <span class="term-state s-running js-demo-state"><span class="glyph">●</span> RUNNING</span>
+        </div>
+        <div class="term-body js-demo-body">
+          <div class="term-line"><span class="p">claude&gt;</span> starting…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── The problem ───────────────────────────────────── -->
+<section id="problem">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">The problem</p>
+      <h2>The limit always hits at the worst time</h2>
+      <p class="lead">Claude Code on the Pro plan enforces a 5-hour rolling window and a weekly cap. When you hit it, the CLI prints <code>Claude usage limit reached. Your limit will reset at &lt;time&gt;</code> and blocks every prompt until the window resets — often mid-task, overnight, or while you're away.</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card reveal"><div class="ic">⏳</div><h3>Work stalls</h3><p>A long refactor or migration freezes the moment the limit lands — and waits for <em>you</em> to come back and retype.</p></div>
+      <div class="card reveal"><div class="ic">🌙</div><h3>You lose the night</h3><p>The window resets at 3 AM. Nobody is awake to press resume, so hours of potential progress evaporate.</p></div>
+      <div class="card reveal"><div class="ic">🧠</div><h3>You lose context</h3><p>Restarting by hand risks losing the conversation thread — and typing "continue" yet again gets old fast.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── What is it ────────────────────────────────────── -->
+<section id="what">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">What is Claude Keeper</p>
+      <h2>A keeper that watches the terminal so you don't have to</h2>
+      <p class="lead">It runs the real <code>claude</code> CLI inside an embedded xterm terminal and quietly manages the limit lifecycle end to end.</p>
+    </div>
+    <div class="grid cols-3">
+      <div class="card reveal"><div class="ic">🖥️</div><h3>Hosts the real CLI</h3><p>Full interactive Claude Code TUI in a real PTY — typing, arrow keys, colors, resize. Nothing emulated.</p></div>
+      <div class="card reveal"><div class="ic">🔎</div><h3>Detects the limit</h3><p>Scans output for the usage-limit message using configurable patterns, with no false positives on clean exits.</p></div>
+      <div class="card reveal"><div class="ic">🕒</div><h3>Parses the reset time</h3><p>Timezone-aware parsing of "reset at &lt;time&gt; (&lt;tz&gt;)", with interval polling as a fallback.</p></div>
+      <div class="card reveal"><div class="ic">⏲️</div><h3>Shows a live countdown</h3><p>A status bar and countdown make it obvious what's happening and exactly when work resumes.</p></div>
+      <div class="card reveal"><div class="ic">♻️</div><h3>Auto-resumes</h3><p>At reset (plus a 1-minute safety buffer) it types <code>continue</code> + Enter into the still-open session — exactly what you would do by hand.</p></div>
+      <div class="card reveal"><div class="ic">⏱️</div><h3>Resume on your schedule</h3><p><strong>Resume now</strong> skips the countdown whenever you want to continue early.</p></div>
+      <div class="card reveal"><div class="ic">🔓</div><h3>Trust on your terms</h3><p>Hit a folder-trust prompt? Claude Keeper offers one-click <em>Trust &amp; restart</em>, or a persistent opt-in — never silently bypassing it.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Why use it ────────────────────────────────────── -->
+<section id="why">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Why use it</p>
+      <h2>Reclaim the hours the limit used to cost you</h2>
+    </div>
+    <div class="grid cols-2">
+      <div class="card reveal"><div class="ic">🚀</div><h3>Unattended progress</h3><p>Kick off a big task, walk away, and come back to finished work — Claude Keeper rode out every limit window for you.</p></div>
+      <div class="card reveal"><div class="ic">🧵</div><h3>Context stays intact</h3><p>The session is never killed — the prompt lands in the same live conversation. If the CLI died mid-wait, it relaunches <code>claude --continue</code> first.</p></div>
+      <div class="card reveal"><div class="ic">🛡️</div><h3>Crash &amp; sleep proof</h3><p>Wait state is persisted to disk. Quit the app, reboot, or sleep the laptop — it re-enters the wait with the right reset time and resumes on schedule.</p></div>
+      <div class="card reveal"><div class="ic">🔐</div><h3>Privacy-first</h3><p>No Anthropic API integration and no keys. It only observes terminal output and waits for the legitimate reset — it never bypasses limits.</p></div>
+      <div class="card reveal"><div class="ic">🌍</div><h3>Works for anyone, anywhere</h3><p>Machine-agnostic by design: no hardcoded paths or drive letters. Config lives in your per-user OS data dir.</p></div>
+      <div class="card reveal"><div class="ic">🛡️</div><h3>Built to be trusted</h3><p>The detection, scheduling, and recovery behavior is hardened so it waits for the legitimate reset and resumes reliably — without ever touching your data.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ──────────────────────────────────── -->
+<section id="how">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">How it works</p>
+      <h2>From limit to resume, in five steps</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div><h3>Host</h3><p>Runs the real <code>claude</code> CLI inside a true embedded terminal — typing, arrow keys, colors and resize all work, on Windows, macOS and Linux.</p></div></div>
+      <div class="step reveal"><div><h3>Detect</h3><p>Watches the output for the usage-limit message — and only that — so a normal exit never triggers a false wait.</p></div></div>
+      <div class="step reveal"><div><h3>Parse</h3><p>Turns "reset at 3:00 PM (America/New_York)" into an absolute, timezone-correct moment; if it can't, it falls back to interval polling.</p></div></div>
+      <div class="step reveal"><div><h3>Wait</h3><p>Re-checks the clock continuously, so the countdown stays accurate across laptop sleep, and the wait is saved so it survives a full restart.</p></div></div>
+      <div class="step reveal"><div><h3>Resume</h3><p>At reset (plus a safety buffer) it types the resume prompt — <code>continue</code> by default — into the live session (relaunching <code>claude --continue</code> first if it died), verifies the resume took, and retries with backoff if it's still limited.</p></div></div>
+    </div>
+
+    <div class="reveal" style="margin-top:40px">
+      <h3 style="text-align:center;color:var(--muted);font-size:1rem;letter-spacing:.05em;text-transform:uppercase">The state machine</h3>
+      <div class="flow" style="margin-top:18px">
+        <span class="pill s-idle">○ IDLE</span><span class="arrow">→</span>
+        <span class="pill s-running">● RUNNING</span><span class="arrow">→</span>
+        <span class="pill s-limit">⚠ LIMIT</span><span class="arrow">→</span>
+        <span class="pill s-waiting">◐ WAITING</span><span class="arrow">→</span>
+        <span class="pill s-resuming">↻ RESUMING</span><span class="arrow">↺</span>
+        <span class="pill s-running">● RUNNING</span>
+      </div>
+      <p class="lead" style="text-align:center;font-size:.9rem;margin-top:14px">Prefer to drive it yourself? <strong>Resume now</strong> jumps straight to RESUMING whenever you want to continue early.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Live demo ─────────────────────────────────────── -->
+<section id="demo">
+  <div class="wrap">
+    <div class="section-head reveal center">
+      <p class="eyebrow">Live demo</p>
+      <h2>See a full limit → wait → resume cycle</h2>
+      <p class="lead">A real 5-hour wait, compressed into a few seconds. Watch the state machine drive itself — no clicks required.</p>
+      <div style="margin-top:18px"><button class="btn blue" id="demoToggle">⏸ Pause demo</button></div>
+    </div>
+    <div class="term reveal" style="max-width:760px;margin:0 auto">
+      <div class="term-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="term-title">Claude Keeper — auto-resume</span>
+        <span class="term-state s-running js-demo-state"><span class="glyph">●</span> RUNNING</span>
+      </div>
+      <div class="term-body js-demo-body" style="min-height:300px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Use cases ─────────────────────────────────────── -->
+<section id="usecases">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Cool UX use cases</p>
+      <h2>What people actually do with it</h2>
+    </div>
+    <div class="tabs reveal">
+      <button class="tab active" data-tab="overnight">🌙 Overnight refactor</button>
+      <button class="tab" data-tab="migration">🚚 Big migration</button>
+      <button class="tab" data-tab="research">🔬 Long research run</button>
+      <button class="tab" data-tab="traveler">✈️ Timezone traveler</button>
+      <button class="tab" data-tab="flaky">🔌 Flaky machine</button>
+    </div>
+
+    <div class="panel active" data-panel="overnight">
+      <div class="usecase reveal">
+        <div>
+          <p class="who">// for the solo builder</p>
+          <h3>Ship the refactor while you sleep</h3>
+          <p>Start a sweeping multi-file refactor at 11 PM. You hit the 5-hour limit at midnight — Claude Keeper waits, types <code>continue</code> into the still-open session a minute after reset, and keeps going. You wake up to finished work.</p>
+        </div>
+        <div class="term"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">22:00 → 06:00</span></div>
+          <div class="term-body" style="min-height:auto;font-size:.78rem">
+            <div class="term-line"><span class="dim">23:58</span> <span class="warn">⚠ limit — reset 04:00</span></div>
+            <div class="term-line"><span class="dim">23:58</span> <span class="s-waiting">◐ waiting · auto-resume armed</span></div>
+            <div class="term-line"><span class="dim">04:01</span> <span class="s-resuming">↻ typed "continue" ⏎</span></div>
+            <div class="term-line"><span class="dim">04:01</span> <span class="s-running">● running · context restored</span></div>
+            <div class="term-line"><span class="dim">05:47</span> <span class="s-running">● done · all checks pass</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="migration">
+      <div class="usecase reveal">
+        <div>
+          <p class="who">// for the platform team</p>
+          <h3>Drive a multi-day migration to the finish</h3>
+          <p>A framework upgrade across hundreds of files spans several limit windows. Claude Keeper rides out each one automatically, so the migration progresses across days without a human re-kicking it after every cap.</p>
+        </div>
+        <div class="term"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">day 1 → day 3</span></div>
+          <div class="term-body" style="min-height:auto;font-size:.78rem">
+            <div class="term-line"><span class="dim">file 84/420</span> <span class="warn">⚠ weekly cap hit</span></div>
+            <div class="term-line"><span class="s-waiting">◐ waiting · next window in 18h</span></div>
+            <div class="term-line"><span class="s-resuming">↻ resumed automatically</span></div>
+            <div class="term-line"><span class="dim">file 420/420</span> <span class="s-running">● migration complete</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="research">
+      <div class="usecase reveal">
+        <div>
+          <p class="who">// for the analyst</p>
+          <h3>Let a long investigation run unattended</h3>
+          <p>A deep, many-step research or codebase-analysis task naturally outlasts a single window. Claude Keeper rides out each cap and nudges the same session onward with your configured resume prompt — no restarts, no lost thread.</p>
+        </div>
+        <div class="term"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">unattended resume</span></div>
+          <div class="term-body" style="min-height:auto;font-size:.78rem">
+            <div class="term-line"><span class="warn">⚠ limit reached · reset 04:00</span></div>
+            <div class="term-line"><span class="s-waiting">◐ session kept open · waiting for reset + 1 min</span></div>
+            <div class="term-line"><span class="s-resuming">↻ typed "continue" ⏎ into the same session</span></div>
+            <div class="term-line"><span class="s-running">● continuing the analysis</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="traveler">
+      <div class="usecase reveal">
+        <div>
+          <p class="who">// for the digital nomad</p>
+          <h3>Right time, any timezone</h3>
+          <p>The reset message says "3:00 PM (America/New_York)" but you're in Berlin. Claude Keeper parses the stated timezone into an absolute moment, so the countdown is correct no matter where you — or your laptop's clock — happen to be.</p>
+        </div>
+        <div class="term"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">tz-aware</span></div>
+          <div class="term-body" style="min-height:auto;font-size:.78rem">
+            <div class="term-line"><span class="dim">message</span> reset at 3:00 PM (America/New_York)</div>
+            <div class="term-line"><span class="dim">your clock</span> Europe/Berlin</div>
+            <div class="term-line"><span class="s-waiting">◐ resuming in 02 : 14 : 31</span> <span class="dim">(correct)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="flaky">
+      <div class="usecase reveal">
+        <div>
+          <p class="who">// for the real world</p>
+          <h3>Reboots and sleep don't faze it</h3>
+          <p>Your OS pushes an update and reboots mid-wait, or you slam the lid shut to catch a train. On relaunch Claude Keeper reloads the persisted wait, validates it's still fresh, and resumes on the original schedule — or starts clean if the saved command no longer matches your settings.</p>
+        </div>
+        <div class="term"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">resilience</span></div>
+          <div class="term-body" style="min-height:auto;font-size:.78rem">
+            <div class="term-line"><span class="s-waiting">◐ waiting · reset 15:00</span></div>
+            <div class="term-line"><span class="warn">✕ app quit / reboot</span></div>
+            <div class="term-line"><span class="dim">relaunch →</span> <span class="s-waiting">◐ recovered · reset 15:00</span></div>
+            <div class="term-line"><span class="s-resuming">↻ resumed on schedule</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── UI tour / states ──────────────────────────────── -->
+<section id="ui">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">The interface</p>
+      <h2>Always-clear status, at a glance</h2>
+      <p class="lead">Every state has a distinct glyph and color in the status bar and activity log, so you always know what Claude Keeper is doing.</p>
+    </div>
+    <div class="grid cols-2" style="align-items:start">
+      <div class="card reveal" style="padding:0;overflow:hidden">
+        <table class="states">
+          <thead><tr><th>State</th><th>Glyph</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td class="s-idle">IDLE</td><td class="glyph s-idle">○</td><td>No session running</td></tr>
+            <tr><td class="s-running">RUNNING</td><td class="glyph s-running">●</td><td>Claude is active</td></tr>
+            <tr><td class="s-limit">LIMIT</td><td class="glyph s-limit">⚠</td><td>Just hit the usage limit</td></tr>
+            <tr><td class="s-waiting">WAITING</td><td class="glyph s-waiting">◐</td><td>Counting down to resume</td></tr>
+            <tr><td class="s-resuming">RESUMING</td><td class="glyph s-resuming">↻</td><td>Relaunching the session</td></tr>
+            <tr><td style="color:var(--red)">RETRYING</td><td class="glyph" style="color:var(--red)">✕</td><td>Resume failed — backing off</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="reveal">
+        <div class="term">
+          <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">Activity</span></div>
+          <div class="term-body" style="min-height:auto">
+            <div class="term-line"><span class="dim">14:46</span> <span class="warn">⚠ Limit reached — reset 15:00 (America/New_York)</span></div>
+            <div class="term-line"><span class="dim">14:46</span> <span class="s-waiting">◐ Waiting · auto-resume scheduled 15:01</span></div>
+            <div class="term-line"><span class="dim">15:01</span> <span class="s-resuming">↻ Resuming · typing "continue" ⏎</span></div>
+            <div class="term-line"><span class="dim">15:01</span> <span class="s-running">● Running · resume verified</span></div>
+          </div>
+        </div>
+        <p class="lead" style="font-size:.95rem;margin-top:16px">Settings let you configure the command, args, working directory (with optional trust), the resume prompt, safety buffer, poll interval, max retries, and custom detection regexes that apply live to a running session — plus diagnostics: verbose logging and an optional size-rotating log file. Prefer to drive it yourself? <strong>Resume now</strong> continues on demand.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features strip ────────────────────────────────── -->
+<section id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Under the hood</p>
+      <h2>Everything you'd want, nothing you wouldn't</h2>
+    </div>
+    <div class="grid cols-3">
+      <div class="card reveal"><div class="ic">🪟🍎🐧</div><h3>True cross-platform</h3><p>Electron app packaged for Windows, macOS, and Linux — x64 and arm64.</p></div>
+      <div class="card reveal"><div class="ic">🔀</div><h3>Configurable resume prompt</h3><p>Types <code>continue</code> by default — or any prompt you choose — into the session at reset.</p></div>
+      <div class="card reveal"><div class="ic">🧷</div><h3>Persistent wait state</h3><p>Atomic writes, freshness checks, and command cross-checks guard against stale or bogus resumes.</p></div>
+      <div class="card reveal"><div class="ic">🎛️</div><h3>Configurable detection</h3><p>Tune the limit-detection regexes for your locale or CLI version — changes apply live to a running session, no relaunch.</p></div>
+      <div class="card reveal"><div class="ic">⏱️</div><h3>Tick-based scheduler</h3><p>Re-checks the clock each tick — accurate across sleep, with backoff retries.</p></div>
+      <div class="card reveal"><div class="ic">🧱</div><h3>Focused, reliable core</h3><p>The limit-handling logic is kept simple and dependable, so detection, waiting, and resume behave predictably every time.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Download & install ────────────────────────────── -->
+<section id="download">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Download &amp; install</p>
+      <h2>Get the app in under a minute</h2>
+      <p class="lead">Download the prebuilt installer for your operating system from the releases page, then install it like any other desktop app. To actually drive a session you'll also want the <code>claude</code> CLI available on your machine.</p>
+    </div>
+
+    <!-- Auto-detected recommendation (filled in by app.js; hidden if JS off
+         or detection fails, in which case the per-OS cards below still work). -->
+    <div id="dlDetected" class="dl-detected reveal" hidden>
+      <span class="dl-detected-ic" id="dlDetectedIc">💻</span>
+      <div class="dl-detected-text">
+        <p class="dl-detected-label">Looks like you're on <strong id="dlDetectedName">your system</strong></p>
+        <p class="dl-detected-sub" id="dlDetectedSub">Here's the build that matches your machine.</p>
+      </div>
+      <a class="btn primary dl-detected-btn" id="dlDetectedBtn" data-dl="auto" href="https://github.com/AICodeDoctor/claude-keeper/releases/latest">↓ Download</a>
+    </div>
+
+    <div class="grid cols-3" style="align-items:start;margin-top:36px">
+      <div class="card reveal" data-os-card="win">
+        <div class="ic">🪟</div>
+        <h3>Windows</h3>
+        <p>Download the <strong>.exe</strong> installer (x64 or arm64), run it, and follow the prompts. A portable <strong>.zip</strong> is also available if you'd rather not install.</p>
+        <p><a class="btn" data-dl="win" href="https://github.com/AICodeDoctor/claude-keeper/releases/latest">Get the Windows installer ↓</a></p>
+      </div>
+      <div class="card reveal" data-os-card="mac">
+        <div class="ic">🍎</div>
+        <h3>macOS</h3>
+        <p>Download the <strong>.dmg</strong> for your chip (Apple&nbsp;Silicon or Intel), open it, and drag Claude Keeper to Applications.</p>
+        <p><a class="btn" data-dl="mac" href="https://github.com/AICodeDoctor/claude-keeper/releases/latest">Get the macOS installer ↓</a></p>
+      </div>
+      <div class="card reveal" data-os-card="linux">
+        <div class="ic">🐧</div>
+        <h3>Linux</h3>
+        <p>Grab the <strong>.AppImage</strong> (make it executable and run) for x64 or arm64, or the <strong>.deb</strong> package for Debian/Ubuntu on x64.</p>
+        <p><a class="btn" data-dl="linux" href="https://github.com/AICodeDoctor/claude-keeper/releases/latest">Get the Linux installer ↓</a></p>
+      </div>
+    </div>
+
+    <p class="lead reveal" style="text-align:center;margin-top:28px;font-size:.95rem">
+      All installers live on the <a href="https://github.com/AICodeDoctor/claude-keeper/releases/latest">GitHub Releases page</a>. Each release lists a checksum file so you can verify your download.
+    </p>
+
+    <div class="cta-band reveal" style="margin-top:40px">
+      <h2>Stop pressing resume. Start shipping overnight.</h2>
+      <p>Claude Keeper turns the usage limit from a hard stop into a brief, automatic pause.</p>
+      <div class="hero-cta" style="justify-content:center">
+        <a class="btn primary" href="https://github.com/AICodeDoctor/claude-keeper/releases/latest">↓ Download the latest release</a>
+        <a class="btn" href="https://github.com/AICodeDoctor/claude-keeper">⭐ Star on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ───────────────────────────────────────────── -->
+<section id="faq">
+  <div class="wrap" style="max-width:780px">
+    <div class="section-head reveal center">
+      <p class="eyebrow">FAQ</p>
+      <h2>Questions, answered</h2>
+    </div>
+    <details class="faq reveal"><summary>Does this bypass or evade Claude's usage limits?</summary><p>No. Claude Keeper only waits for the legitimate reset and then resumes. It never circumvents the limit, and it has no access to the Anthropic API — it simply observes the terminal output of the official CLI.</p></details>
+    <details class="faq reveal"><summary>Do I need API keys or to log in again?</summary><p>No keys. You authenticate with the <code>claude</code> CLI exactly as you normally would; Claude Keeper just hosts that session in a terminal.</p></details>
+    <details class="faq reveal"><summary>What happens if my laptop sleeps or restarts during the wait?</summary><p>The wait state is persisted to disk. On wake or relaunch, Claude Keeper reloads it, checks it's still fresh and that the saved command still matches your settings, and resumes on the original schedule. A tick-based scheduler keeps the countdown accurate across sleep.</p></details>
+    <details class="faq reveal"><summary>How does it resume, exactly?</summary><p>It types the resume prompt (<code>continue</code> by default) plus Enter into the same still-open session, one minute after the stated reset — exactly what you would do by hand. Only if the CLI died mid-wait (or the app was restarted) does it relaunch <code>claude --continue</code> first, then type the prompt.</p></details>
+    <details class="faq reveal"><summary>Will it falsely trigger on a normal exit?</summary><p>No. The detector matches only the usage-limit message, so a clean, user-driven exit is treated as idle and never starts a wait.</p></details>
+    <details class="faq reveal"><summary>Which platforms are supported?</summary><p>Windows, macOS, and Linux (x64 and arm64). Prebuilt installers for every platform are available on the <a href="https://github.com/AICodeDoctor/claude-keeper/releases/latest">releases page</a> — just download the one for your OS.</p></details>
+    <details class="faq reveal"><summary>Is it reliable?</summary><p>Yes. The detection, scheduling, and recovery behavior is hardened and reviewed so it waits for the legitimate reset and resumes dependably — without bypassing limits or touching the Anthropic API.</p></details>
+  </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────── -->
+<footer>
+  <div class="wrap">
+    <div class="brand"><img src="assets/logo.svg" alt="" style="width:24px;height:24px" /> Claude Keeper</div>
+    <div>MIT licensed · Not affiliated with Anthropic. “Claude” is a trademark of Anthropic.</div>
+    <div><a href="https://github.com/AICodeDoctor/claude-keeper">GitHub</a> · <a href="https://github.com/AICodeDoctor/claude-keeper/releases/latest">Download</a> · <a href="#top">Back to top ↑</a></div>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
